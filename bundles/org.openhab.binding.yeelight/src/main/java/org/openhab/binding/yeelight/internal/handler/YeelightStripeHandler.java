@@ -12,6 +12,7 @@
  */
 package org.openhab.binding.yeelight.internal.handler;
 
+import static org.openhab.binding.yeelight.internal.YeelightBindingConstants.*;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.types.Command;
@@ -37,6 +38,6 @@ public class YeelightStripeHandler extends YeelightHandlerBase {
     @Override
     protected void updateUI(DeviceStatus status) {
         super.updateUI(status);
-        updateBrightnessAndColorUI(status);
+        updateBrightnessAndColorUI(status, COLOR_TEMPERATURE_MAXIMUM_COLOR, COLOR_TEMPERATURE_STEP_COLOR);
     }
 }

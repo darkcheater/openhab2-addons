@@ -68,6 +68,8 @@ public abstract class DeviceBase {
     public DeviceBase(String id) {
         mDeviceId = id;
         mDeviceStatus = new DeviceStatus();
+        //need to set autoconnect to true here?
+        //bIsAutoConnect = true;
     }
 
     public DeviceBase(String id, boolean isAutoConnect) {
@@ -241,6 +243,9 @@ public abstract class DeviceBase {
                             } else {
                                 mDeviceStatus.setBg_DelayOff(DeviceStatus.DEFAULT_NO_DELAY);
                             }
+                        } else if (prop.getKey().equals("bg_proact")) {
+                            updateProp += " bg_proact";
+                            mDeviceStatus.setBg_switchWithMainLight(prop.getValue().getAsInt() == 1);
                         } else if (prop.getKey().equals("music_on")) {
                             updateProp += " music_on";
                             mDeviceStatus.setMusicOn(prop.getValue().getAsInt() == 1);
@@ -341,7 +346,8 @@ public abstract class DeviceBase {
         mConnection.invoke(MethodFactory.buildBg_RgbMethod(bg_color, DeviceMethod.EFFECT_SMOOTH, duration));
     }
 
-    public void increaseCt(int duration) {
+
+    public void decreaseCt(int duration) {
         int ct = getDeviceStatus().getCt() - ((mMaxCt - mMinCt) / 10);
         if (ct < mMinCt) {
             ct = mMinCt;
@@ -349,7 +355,8 @@ public abstract class DeviceBase {
         setCT(ct, duration);
     }
 
-    public void decreaseCt(int duration) {
+
+    public void increaseCt(int duration) {
         int ct = getDeviceStatus().getCt() + ((mMaxCt - mMinCt) / 10);
         if (ct > mMaxCt) {
             ct = mMaxCt;
@@ -357,7 +364,8 @@ public abstract class DeviceBase {
         setCT(ct, duration);
     }
 
-    public void increaseBg_Ct(int duration) {
+
+    public void decreaseBg_Ct(int duration) {
         int ct = getDeviceStatus().getBg_Ct() - ((mMaxCt - mMinCt) / 10);
         if (ct < mMinCt) {
             ct = mMinCt;
@@ -365,7 +373,8 @@ public abstract class DeviceBase {
         setBg_CT(ct, duration);
     }
 
-    public void decreaseBg_Ct(int duration) {
+
+    public void increaseBg_Ct(int duration) {
         int ct = getDeviceStatus().getBg_Ct() + ((mMaxCt - mMinCt) / 10);
         if (ct > mMaxCt) {
             ct = mMaxCt;
@@ -383,18 +392,20 @@ public abstract class DeviceBase {
 
 
     public void connect() {
+        logger.debug("{} -> connect()", TAG);
         setConnectionState(ConnectState.CONNECTTING);
         mConnection.connect();
     }
 
     public void setConnectionState(ConnectState connectState) {
-        logger.debug("{}: set connection state to: {}", TAG, connectState.name());
+        logger.debug("{}: set connection state of {} to: {}", TAG, mDeviceId, connectState.name());
         if (connectState == ConnectState.DISCONNECTED) {
             setOnline(false);
         }
         if (mConnectState != connectState) {
             mConnectState = connectState;
             if (mConnectionListeners != null) {
+            logger.debug("{}: setConnectionState id {}: calling onChanged", TAG, mDeviceId);
                 for (DeviceConnectionStateListener listener : mConnectionListeners) {
                     listener.onConnectionStateChanged(mConnectState);
                 }

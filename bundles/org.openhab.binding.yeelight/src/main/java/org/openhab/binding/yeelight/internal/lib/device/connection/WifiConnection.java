@@ -116,8 +116,9 @@ public class WifiConnection implements ConnectionBase {
             } catch (Exception e) {
                 logger.debug("{}: connect device! ERROR! {}", TAG, e.getMessage());
                 logger.debug("Exception: {}", e);
-            } finally {
+                //moved following line to catch instead of finally block
                 mDevice.setConnectionState(ConnectState.DISCONNECTED);
+            } finally {
                 mSocket = null;
             }
         });

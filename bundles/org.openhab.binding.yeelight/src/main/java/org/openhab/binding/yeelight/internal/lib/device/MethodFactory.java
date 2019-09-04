@@ -193,7 +193,7 @@ public class MethodFactory {
             case desklamp:
                 return new DeviceMethod(MethodAction.PROP, new Object[] { "power", "name", "bright", "ct" });
             case ceiling10:
-                return new DeviceMethod(MethodAction.PROP, new Object[] { "power", "name", "bright", "ct", "bg_power", "bg_bright", "bg_ct", "bg_rgb", "bg_hue", "bg_sat" });
+                return new DeviceMethod(MethodAction.PROP, new Object[] { "power", "name", "bright", "ct", "bg_power", "bg_bright", "bg_ct", "bg_rgb", "bg_hue", "bg_sat", "main_power", "bg_proact" });
             default:
                 return null;
         }

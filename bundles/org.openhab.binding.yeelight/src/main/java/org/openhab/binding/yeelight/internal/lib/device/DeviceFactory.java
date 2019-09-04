@@ -98,6 +98,8 @@ public class DeviceFactory {
         device.setAddress(addressInfo[1].substring(2));
         device.setPort(Integer.parseInt(addressInfo[2]));
         device.setOnline(true);
+        //need to set autoconnect to true here?
+        //device.setAutoConnect(true);
         LOGGER.debug("{}: DeviceFactory Device info = {}, port = {}", TAG, device.getAddress(), device.getPort());
         return device;
     }

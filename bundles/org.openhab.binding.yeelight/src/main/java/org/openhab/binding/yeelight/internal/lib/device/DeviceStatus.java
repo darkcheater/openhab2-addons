@@ -28,7 +28,9 @@ public class DeviceStatus {
     public static final int DEFAULT_NO_DELAY = -1;
 
     private boolean isPowerOff;
+    private boolean isWholeLightPowerOff;
     private boolean bg_isPowerOff;
+    private boolean bg_switchWithMainLight;
     private int r;
     private int g;
     private int b;
@@ -211,6 +213,22 @@ public class DeviceStatus {
     public void setBg_PowerOff(boolean bg_isPowerOff) {
         this.bg_isPowerOff = bg_isPowerOff;
     }
+    
+    public boolean isWholeLightPowerOff() {
+        return isWholeLightPowerOff;
+    }
+
+    public void setWholeLightPowerOff(boolean isWholeLightPowerOff) {
+        this.isWholeLightPowerOff = isWholeLightPowerOff;
+    }
+    
+    public boolean getBg_switchWithMainLight() {
+        return bg_switchWithMainLight;
+    }
+
+    public void setBg_switchWithMainLight(boolean bg_switchWithMainLight) {
+        this.bg_switchWithMainLight = bg_switchWithMainLight;
+    }
 
     public int getColor() {
         return color;
@@ -286,12 +304,12 @@ public class DeviceStatus {
 
     @Override
     public String toString() {
-        return "DeviceStatus [isPowerOff=" + isPowerOff + ", r=" + r + ", g=" + g + ", b=" + b + ", color=" + color
+        return "DeviceStatus [isPowerOff=" + isPowerOff + ", isWholeLightPowerOff=" + isWholeLightPowerOff + ", r=" + r + ", g=" + g + ", b=" + b + ", color=" + color
                 + ", brightness=" + brightness + ", ct=" + ct + ", hue=" + hue + ", sat=" + sat + ", isFlowing="
                 + isFlowing + ", delayOff=" + delayOff + ", mFlowItems=" + mFlowItems + ", mode=" + mode
-                + ", isMusicOn=" + isMusicOn + ", name=" + name + ", bg_isPowerOff=" + bg_isPowerOff + ", bg_r=" + bg_r
+                + ", isMusicOn=" + isMusicOn + ", name=" + name + ", bg_isPowerOff=" + bg_isPowerOff + ", bg_switchWithMainLight=" + bg_switchWithMainLight + ", bg_r=" + bg_r
                 + ", bg_g=" + bg_g + ", bg_b=" + bg_b + ", bg_color=" + bg_color + ", bg_brightness=" + bg_brightness
-                + ", bg_hue=" + bg_hue + ", bg_sat=" + bg_sat + ", bg_mode=" + bg_mode + "]";
+                + ", bg_ct=" + bg_ct + ", bg_hue=" + bg_hue + ", bg_sat=" + bg_sat + ", bg_mode=" + bg_mode + "]";
     }
 
     public int getFlowCount() {

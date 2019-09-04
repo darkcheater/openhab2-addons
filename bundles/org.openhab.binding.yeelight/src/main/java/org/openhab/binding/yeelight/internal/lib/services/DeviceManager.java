@@ -113,15 +113,26 @@ public class DeviceManager {
         logger.debug("Starting Discovery");
 
         try {
+            mSearching = true;
+            //logger.debug("clearing device list");
+            //mDeviceList.clear();
             final InetAddress multicastAddress = InetAddress.getByName(MULTI_CAST_HOST);
 
             final List<NetworkInterface> networkInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
 
             executorService = Executors.newFixedThreadPool(networkInterfaces.size());
-            mSearching = true;
+
+            
 
             for (final NetworkInterface networkInterface : networkInterfaces) {
 
+                
+                //dont search on loopback interface
+                String networkName = networkInterface.getDisplayName();
+                if(networkName.contains("lo")) {//  || networkName.contains("eth0")) {
+                    continue;
+                }
+                
                 logger.debug("Starting Discovery on: {}", networkInterface.getDisplayName());
 
                 executorService.execute(() -> {
@@ -132,6 +143,7 @@ public class DeviceManager {
                         multiSocket.setNetworkInterface(networkInterface);
                         multiSocket.joinGroup(multicastAddress);
 
+                        boolean firstRun = true;
                         while (mSearching) {
                             byte[] buf = new byte[1024];
                             DatagramPacket dpSend = new DatagramPacket(DISCOVERY_MSG.getBytes(),
@@ -139,7 +151,10 @@ public class DeviceManager {
 
                             DatagramPacket dpRecv = new DatagramPacket(buf, buf.length);
 
-                            multiSocket.send(dpSend);
+                            if (firstRun) { //send only once
+                                multiSocket.send(dpSend);
+                                firstRun = false;
+                            }
 
                             try {
                                 multiSocket.receive(dpRecv);
@@ -152,6 +167,10 @@ public class DeviceManager {
                                     }
                                     buffer.append((char) bytes[i]);
                                 }
+                                //skip reception of sent message (boomerang)
+                                if(buffer.toString().contains("M-SEARCH"))
+                                    continue;
+                                
                                 logger.debug("{}: got message: {}", TAG, buffer.toString());
                                 String[] infos = buffer.toString().split("\n");
                                 Map<String, String> bulbInfo = new HashMap<>();
@@ -167,17 +186,28 @@ public class DeviceManager {
                                 }
                                 logger.debug("{}: got bulbInfo: {}", TAG, bulbInfo);
                                 if (bulbInfo.containsKey("model") && bulbInfo.containsKey("id")) {
+                                    //discover each device only once
+                                    //if(mDeviceList.containsKey(bulbInfo.get("id"))) {
+                                    //    logger.debug("We already discovered id: {} (model: {}), skipping", bulbInfo.get("id"), bulbInfo.get("model"));
+                                    //    continue;
+                                    //}                                       
                                     DeviceBase device = DeviceFactory.build(bulbInfo);
                                     if (bulbInfo.containsKey("name")) {
                                         device.setDeviceName(bulbInfo.get("name"));
                                     } else {
                                         device.setDeviceName("");
                                     }
+                                    //update device, needed?
                                     if (mDeviceList.containsKey(device.getDeviceId())) {
                                         updateDevice(mDeviceList.get(device.getDeviceId()), bulbInfo);
                                     }
+
+
+                                    //addDevice(device);
+                                    //updateDevice(device, bulbInfo);
                                     notifyDeviceFound(device);
                                 }
+
                             } catch (SocketTimeoutException e) {
                                 logger.debug("Error timeout: {}", e.getMessage(), e);
                             }
@@ -187,13 +217,13 @@ public class DeviceManager {
                         multiSocket.close();
                     } catch (Exception e) {
                         if (!e.getMessage().contains("No IP addresses bound to interface")) {
-                            logger.debug("Error getting ip addresses: {}", e.getMessage(), e);
+                            logger.debug("exnoip:Error getting ip addresses: {}", e.getMessage(), e);
                         }
                     }
                 });
             }
         } catch (IOException e) {
-            logger.debug("Error getting ip addresses: {}", e.getMessage(), e);
+            logger.debug("ioex:Error getting ip addresses: {}", e.getMessage(), e);
         }
     }
 
@@ -273,31 +303,44 @@ public class DeviceManager {
     }
 
     public void addDevice(DeviceBase device) {
+        logger.debug("DeviceManager -> addDevice: adding {} to devicelist", device.getDeviceId());
+        logger.debug("DeviceManager -> addDevice: DeviceList contains: {}", mDeviceList.keySet());
         mDeviceList.put(device.getDeviceId(), device);
     }
 
     public void updateDevice(DeviceBase device, Map<String, String> bulbInfo) {
+
         String[] addressInfo = bulbInfo.get("Location").split(":");
         device.setAddress(addressInfo[1].substring(2));
         device.setPort(Integer.parseInt(addressInfo[2]));
         device.setOnline(true);
-        Color color = new Color(Integer.parseInt(bulbInfo.get("rgb")));
-        Color bg_color = new Color(Integer.parseInt(bulbInfo.get("bg_rgb")));
-        DeviceStatus status = device.getDeviceStatus();
-        status.setR(color.getRed());
-        status.setG(color.getGreen());
-        status.setB(color.getBlue());
-        status.setBg_R(bg_color.getRed());
-        status.setBg_G(bg_color.getGreen());
-        status.setBg_B(bg_color.getBlue());
-        status.setCt(Integer.parseInt(bulbInfo.get("ct")));
-        status.setBg_Ct(Integer.parseInt(bulbInfo.get("bg_ct")));
-        status.setHue(Integer.parseInt(bulbInfo.get("hue")));
-        status.setSat(Integer.parseInt(bulbInfo.get("sat")));
-        status.setBg_Hue(Integer.parseInt(bulbInfo.get("bg_hue")));
-        status.setBg_Sat(Integer.parseInt(bulbInfo.get("bg_sat")));
-        status.setBg_Brightness(Integer.parseInt(bulbInfo.get("bg_bright")));
-        status.setBrightness(Integer.parseInt(bulbInfo.get("bright")));
+
+        DeviceStatus status = device.getDeviceStatus();       
+        switch (device.getDeviceType()) {
+            case color:
+            case stripe:
+                Color color = new Color(Integer.parseInt(bulbInfo.get("rgb")));       
+
+                status.setR(color.getRed());
+                status.setG(color.getGreen());
+
+
+
+                status.setB(color.getBlue());
+
+
+                status.setHue(Integer.parseInt(bulbInfo.get("hue")));
+                status.setSat(Integer.parseInt(bulbInfo.get("sat")));
+
+
+            case ceiling:
+            case ceiling1:
+            case ceiling3:
+            case ceiling10: //status information of the background light is not part of the discovery response
+                status.setCt(Integer.parseInt(bulbInfo.get("ct")));
+            default:
+                status.setBrightness(Integer.parseInt(bulbInfo.get("bright")));
+        } 
     }
 
     public static String getDefaultName(DeviceBase device) {
@@ -309,6 +352,8 @@ public class DeviceManager {
             case ceiling1:
             case ceiling3:
                 return "Yeelight LED Ceiling";
+            case ceiling10:
+                return "Yeelight Meteorite";
             case color:
                 return "Yeelight Color LED Bulb";
             case mono:
@@ -319,8 +364,8 @@ public class DeviceManager {
                 return "Yeelight Color LED Stripe";
             case desklamp:
                 return "Yeelight Mi LED Desk Lamp";
-            case ceiling10:
-                return "Yeelight Meteorite";
+
+
             default:
                 return "";
         }

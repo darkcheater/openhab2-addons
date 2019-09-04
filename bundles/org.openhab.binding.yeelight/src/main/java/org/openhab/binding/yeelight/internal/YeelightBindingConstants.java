@@ -52,6 +52,19 @@ public class YeelightBindingConstants {
     public static final String CHANNEL_COMMAND = "command";
 
     // Constants used
-    public static final int COLOR_TEMPERATURE_MINIMUM = 1700;
-    public static final int COLOR_TEMPERATURE_STEP = 48;
+    public static final int COLOR_TEMPERATURE_MINIMUM = 2700;
+    public static final int COLOR_TEMPERATURE_MAXIMUM = 6500;
+    public static final int COLOR_TEMPERATURE_STEP = (COLOR_TEMPERATURE_MAXIMUM-COLOR_TEMPERATURE_MINIMUM)/100; //38
+    
+    public static final int COLOR_TEMPERATURE_MINIMUM_CEILING = 2700;
+    public static final int COLOR_TEMPERATURE_MAXIMUM_CEILING = 6500;
+    public static final int COLOR_TEMPERATURE_STEP_CEILING = (COLOR_TEMPERATURE_MAXIMUM_CEILING-COLOR_TEMPERATURE_MINIMUM_CEILING)/100; //38
+    
+    public static final int COLOR_TEMPERATURE_MINIMUM_COLOR = 1700;
+    public static final int COLOR_TEMPERATURE_MAXIMUM_COLOR = 6500;
+    public static final int COLOR_TEMPERATURE_STEP_COLOR = (COLOR_TEMPERATURE_MAXIMUM-COLOR_TEMPERATURE_MINIMUM)/100; //48
+    
+    public static final int COLOR_TEMPERATURE_MINIMUM_METEORITE = 2700;
+    public static final int COLOR_TEMPERATURE_MAXIMUM_METEORITE = 6500;
+    public static final int COLOR_TEMPERATURE_STEP_METEORITE = (COLOR_TEMPERATURE_MAXIMUM_METEORITE-COLOR_TEMPERATURE_MINIMUM_METEORITE)/100; //38
 }

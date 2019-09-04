@@ -20,6 +20,8 @@ import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.types.Command;
 import org.openhab.binding.yeelight.internal.YeelightBindingConstants;
 import org.openhab.binding.yeelight.internal.lib.device.DeviceStatus;
+import org.openhab.binding.yeelight.internal.lib.enums.DeviceAction;
+import org.openhab.binding.yeelight.internal.lib.services.DeviceManager;
 
 /**
  * The {@link YeelightCeilingHandler} is responsible for handling commands, which are
@@ -46,7 +48,12 @@ public class YeelightCeilingHandler extends YeelightHandlerBase {
         } else {
             updateState(YeelightBindingConstants.CHANNEL_BRIGHTNESS, new PercentType(status.getBrightness()));
             updateState(YeelightBindingConstants.CHANNEL_COLOR_TEMPERATURE,
-                    new PercentType((status.getCt() - COLOR_TEMPERATURE_MINIMUM) / COLOR_TEMPERATURE_STEP));
+                    new PercentType((COLOR_TEMPERATURE_MAXIMUM_CEILING - status.getCt()) / COLOR_TEMPERATURE_STEP_CEILING)); //0% of the dimmer must be cold white -> COLOR_TEMPERATURE_MAXIMUM (to match hue and Alexa definitions)
         }
     }
+    @Override
+    void handleColorTemperatureCommand(PercentType ct) {
+        super.handleColorTemperatureCommand(ct, COLOR_TEMPERATURE_MAXIMUM_CEILING, COLOR_TEMPERATURE_STEP_CEILING);
+    }
+
 }

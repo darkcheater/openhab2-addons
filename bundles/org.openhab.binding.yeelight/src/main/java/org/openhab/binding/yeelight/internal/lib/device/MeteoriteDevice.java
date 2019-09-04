@@ -34,7 +34,7 @@ public class MeteoriteDevice extends DeviceBase {
         mDeviceType = DeviceType.ceiling10;
         mConnection = new WifiConnection(this);
         mMinCt = 2700;
-        mMaxCt = 6700;
+        mMaxCt = 6500;
     }
 
     @Override
@@ -48,16 +48,23 @@ public class MeteoriteDevice extends DeviceBase {
 
                 if (mQueryList.contains(id)) {
                     mQueryList.remove(id);
-                    // DeviceMethod(MethodAction.PROP, new Object[] { "power", "name", "bright", "ct", "bg_power" "bg_bright", "bg_ct", "bg_rgb", "bg_hue", "bg_sat" });
+                    // DeviceMethod(MethodAction.PROP, new Object[] { "power", "name", "bright", "ct", "bg_power", "bg_bright", "bg_ct", "bg_rgb", "bg_hue", "bg_sat", "main_power", "bg_proact" });
                     JsonArray status = result.get("result").getAsJsonArray();
 
                     // power:
+                    //whole light
                     if (status.get(0).toString().equals("\"off\"")) {
-                        mDeviceStatus.setPowerOff(true);
+                        mDeviceStatus.setWholeLightPowerOff(true);
                     } else if (status.get(0).toString().equals("\"on\"")) {
+                        mDeviceStatus.setWholeLightPowerOff(false);
+                    }
+                    //main light
+                    if (status.get(10).toString().equals("\"off\"")) {
+                        mDeviceStatus.setPowerOff(true);
+                    } else if (status.get(10).toString().equals("\"on\"")) {
                         mDeviceStatus.setPowerOff(false);
                     }
-
+                    //bg light
                     if (status.get(4).toString().equals("\"off\"")) {
                         mDeviceStatus.setBg_PowerOff(true);
                     } else if (status.get(4).toString().equals("\"on\"")) {
@@ -84,6 +91,9 @@ public class MeteoriteDevice extends DeviceBase {
                     mDeviceStatus.setBg_Color(color);
                     mDeviceStatus.setBg_Hue(status.get(8).getAsInt());
                     mDeviceStatus.setBg_Sat(status.get(9).getAsInt());
+                    
+                    //proact
+                    mDeviceStatus.setBg_switchWithMainLight(status.get(11).getAsInt() == 1);
                 }
             }
         } catch (Exception e) {

@@ -72,10 +72,12 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
         mDevice = DeviceFactory.build(getDeviceModel(getThing().getThingTypeUID()).name(), deviceId);
         mDevice.setDeviceName(getThing().getLabel());
         mDevice.setAutoConnect(true);
+        //mDevice.setOnline(true); //need to add this line?
         DeviceManager.getInstance().addDevice(mDevice);
         mDevice.registerConnectStateListener(this);
         mDevice.registerStatusChangedListener(this);
-        updateStatusHelper(mDevice.getConnectionState());
+        //set ConnectState to CONNECTED here?
+        updateStatusHelper(mDevice.getConnectionState());//updateStatusHelper(ConnectState.CONNECTED);
         DeviceManager.getInstance().startDiscovery(15 * 1000);
     }
 
@@ -108,6 +110,7 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
     }
 
     public void updateStatusHelper(ConnectState connectState) {
+        logger.debug("updateStatusHelper -> {}", connectState.name());
         switch (connectState) {
             case DISCONNECTED:
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "Device is offline!");
@@ -138,7 +141,7 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
     }
 
     public void handleCommandHelper(ChannelUID channelUID, Command command, String logInfo) {
-        logger.debug(logInfo, command);
+        logger.debug("{} -> {}",logInfo, command);
 
         // If device is disconnected, start discovery to reconnect.
         if (mDevice.isAutoConnect() && mDevice.getConnectionState() != ConnectState.CONNECTED) {
@@ -227,14 +230,14 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
                 if (command instanceof PercentType) {
                     handleColorTemperatureCommand((PercentType) command);
                 } else if (command instanceof IncreaseDecreaseType) {
-                    handleIncreaseDecreaseBrightnessCommand((IncreaseDecreaseType) command);
+                    handleIncreaseDecreaseColorTemperatureCommand((IncreaseDecreaseType) command);
                 }
                 break;
             case CHANNEL_BG_COLOR_TEMPERATURE:
                 if (command instanceof PercentType) {
                     handleBg_ColorTemperatureCommand((PercentType) command);
                 } else if (command instanceof IncreaseDecreaseType) {
-                    handleIncreaseDecreaseBg_BrightnessCommand((IncreaseDecreaseType) command);
+                    handleIncreaseDecreaseBg_ColorTemperatureCommand((IncreaseDecreaseType) command);
                 }
                 break;
             case CHANNEL_COMMAND:
@@ -245,7 +248,7 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
                     if (tokens.length > 1) {
                         methodParams = tokens[1];
                     }
-                    logger.debug(logInfo, methodAction + " " + methodParams);
+                    logger.debug("{} -> {} {}", logInfo, methodAction, methodParams);
                     handleCustomCommand(methodAction, methodParams);
                     updateState(channelUID, new StringType(""));
                 }
@@ -349,15 +352,21 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
     }
 
     void handleColorTemperatureCommand(PercentType ct) {
+        handleColorTemperatureCommand(ct, COLOR_TEMPERATURE_MAXIMUM, COLOR_TEMPERATURE_STEP);
+    }
+    void handleColorTemperatureCommand(PercentType ct, int colorTempMax, int colorTempStep) {
         DeviceAction ctAction = DeviceAction.colortemperature;
-        ctAction.putValue(COLOR_TEMPERATURE_STEP * ct.intValue() + COLOR_TEMPERATURE_MINIMUM);
+        ctAction.putValue(colorTempMax - colorTempStep * ct.intValue());
         ctAction.putDuration(getDuration());
         DeviceManager.getInstance().doAction(deviceId, ctAction);
     }
 
     void handleBg_ColorTemperatureCommand(PercentType ct) {
+        handleBg_ColorTemperatureCommand(ct, COLOR_TEMPERATURE_MAXIMUM, COLOR_TEMPERATURE_STEP);
+    }
+    void handleBg_ColorTemperatureCommand(PercentType ct, int colorTempMax, int colorTempStep) {
         DeviceAction ctAction = DeviceAction.bg_colortemperature;
-        ctAction.putValue(COLOR_TEMPERATURE_STEP * ct.intValue() + COLOR_TEMPERATURE_MINIMUM);
+        ctAction.putValue(colorTempMax - colorTempStep * ct.intValue());
         ctAction.putDuration(getDuration());
         DeviceManager.getInstance().doAction(deviceId, ctAction);
     }
@@ -371,8 +380,12 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
         logger.debug("UpdateState->{}", status);
         updateUI(status);
     }
-
+    
     void updateBrightnessAndColorUI(DeviceStatus status) {
+        updateBrightnessAndColorUI(status, COLOR_TEMPERATURE_MAXIMUM, COLOR_TEMPERATURE_STEP);
+    }
+
+    void updateBrightnessAndColorUI(DeviceStatus status, int colorTempMax, int colorTempStep) {
         PercentType brightness = status.isPowerOff() ? PercentType.ZERO : new PercentType(status.getBrightness());
 
         HSBType tempHsbType = HSBType.fromRGB(status.getR(), status.getG(), status.getB());
@@ -385,10 +398,14 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
 
         logger.debug("Update CT->{}", status.getCt());
         updateState(CHANNEL_COLOR_TEMPERATURE,
-                new PercentType((status.getCt() - COLOR_TEMPERATURE_MINIMUM) / COLOR_TEMPERATURE_STEP));
+                new PercentType((colorTempMax - status.getCt()) / colorTempStep));
+    }
+    
+    void updateBg_BrightnessAndColorUI(DeviceStatus status) {
+        updateBg_BrightnessAndColorUI(status, COLOR_TEMPERATURE_MAXIMUM, COLOR_TEMPERATURE_STEP);
     }
 
-    void updateBg_BrightnessAndColorUI(DeviceStatus status) {
+    void updateBg_BrightnessAndColorUI(DeviceStatus status, int colorTempMax, int colorTempStep) {
         PercentType brightness = status.bg_isPowerOff() ? PercentType.ZERO : new PercentType(status.getBg_Brightness());
 
         HSBType tempHsbType = HSBType.fromRGB(status.getBg_R(), status.getBg_G(), status.getBg_B());
@@ -396,12 +413,12 @@ public abstract class YeelightHandlerBase extends BaseThingHandler
                 ? new HSBType(new DecimalType(status.getBg_Hue()), new PercentType(status.getBg_Sat()), brightness)
                 : new HSBType(tempHsbType.getHue(), tempHsbType.getSaturation(), brightness);
 
-        logger.debug("Update Color->{}", hsbType);
+        logger.debug("Update BG_Color->{}", hsbType);
         updateState(CHANNEL_BG_COLOR, hsbType);
 
-        logger.debug("Update CT->{}", status.getBg_Ct());
+        logger.debug("Update BG_CT->{}", status.getBg_Ct());
         updateState(CHANNEL_BG_COLOR_TEMPERATURE,
-                new PercentType((status.getBg_Ct() - COLOR_TEMPERATURE_MINIMUM) / COLOR_TEMPERATURE_STEP));
+                new PercentType((colorTempMax - status.getCt()) / colorTempStep));
     }
 
     int getDuration() {
